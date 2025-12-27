@@ -1,0 +1,6 @@
+https://digipin-production.up.railway.app/health
+
+digipin-production.up.railway.app
+
+
+https://digipin-web-explore.netlify.app/digipin-advanced.html

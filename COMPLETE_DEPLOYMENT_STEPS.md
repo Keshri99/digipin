@@ -154,20 +154,26 @@ Should show your DigiPin map ✅
 
 ### **4.3 Update Records - Frontend (Netlify)**
 
+**⚠️ IMPORTANT: Use A Record (Not CNAME) for Root Domain**
+
 **Update Root Domain (@):**
 
 Find the **A record** with Name `@`:
 1. Click **Edit**
-2. Change Value to: `yourdomain.netlify.app`
-3. Change Type to: **CNAME**
-4. Click **Save**
+2. Find the current **IP address** from your Netlify domain settings
+3. Keep it as **Type: A** (do NOT change to CNAME)
+4. Keep the Value as the **IP address** provided by Netlify
+5. Click **Save**
+
+*Note: GoDaddy does not allow CNAME records on root domain (@). Use the A record that points to Netlify's IP address.*
 
 **Update WWW:**
 
 Find or create a **CNAME record** with Name `www`:
 1. If exists, click **Edit**
-2. Set Value to: `yourdomain.netlify.app`
-3. Click **Save**
+2. Set Value to your **Netlify subdomain** (e.g., `digipin-XXXXX.netlify.app`)
+3. Set Type to: **CNAME**
+4. Click **Save**
 
 ### **4.4 Add Records - Backend (Railway)**
 
@@ -183,28 +189,44 @@ Find or create a **CNAME record** with Name `www`:
 
 ---
 
-## **STEP 5: Verify Everything Works**
+## **STEP 5: Enable SSL Certificate**
+
+### **Auto-Provision HTTPS**
+
+1. Go to https://app.netlify.com
+2. Select your **digipin** project
+3. Click **Domain settings**
+4. Scroll to **"HTTPS"** section
+5. Click **"Verify DNS configuration"** if available
+6. **Wait 5-15 minutes** — Netlify auto-provisions a free SSL certificate
+7. Refresh your site — the lock icon 🔒 should appear
+
+*Note: DNS might take 15-30 minutes to fully propagate globally. You can check propagation at https://www.whatsmydns.net/*
+
+---
+
+## **STEP 6: Verify Everything Works**
 
 ### **Wait 15-30 minutes** for DNS to propagate, then test:
 
 ```powershell
-# Test frontend
+# Test frontend (should show lock icon 🔒)
 # Open browser and visit:
-# https://yourdomain.com
-# https://www.yourdomain.com
+# https://address2digipin.in
+# https://www.address2digipin.in
 
 # Test backend health
-# https://api.yourdomain.com/health
+# https://api.address2digipin.in/health
 
 # Test API endpoint
-# https://api.yourdomain.com/api/digipin?lat=28.622&lon=77.213
+# https://api.address2digipin.in/api/digipin?lat=28.622&lon=77.213
 
-# If all show correct results ✅, you're done!
+# If all show correct results with HTTPS lock ✅, you're done!
 ```
 
 ---
 
-## **STEP 6: Future Updates**
+## **STEP 7: Future Updates**
 
 Whenever you make changes:
 
@@ -262,11 +284,22 @@ Usually a missing file issue
 Fix and git push
 ```
 
+### **"Not Secure" Warning on HTTPS**
+
+```
+If you see "Not secure" warning:
+1. Go to Netlify → Domain settings
+2. Scroll to "HTTPS" section
+3. Click "Verify DNS configuration"
+4. Wait 5-15 minutes for SSL certificate to provision
+5. Refresh page — lock icon should appear ✅
+```
+
 ### **"API Returning 404"**
 
 ```
-Make sure you're using: https://api.yourdomain.com/api/...
-Not: https://yourdomain.com/api/...
+Make sure you're using: https://api.address2digipin.in/api/...
+Not: https://address2digipin.in/api/...
 Check Railway service is running
 Verify DNS points to railway.app
 ```
@@ -320,12 +353,17 @@ Invoke-WebRequest -Uri "https://api.yourdomain.com/health"
 - ✅ Code pushed to GitHub
 - ✅ Railway backend deployed
 - ✅ Netlify frontend deployed
-- ✅ GoDaddy DNS records updated (www, api, @ )
-- ✅ DNS propagated (checked on whatsmydns.net)
-- ✅ Frontend loads at https://yourdomain.com
-- ✅ Backend responds at https://api.yourdomain.com/health
-- ✅ API works at https://api.yourdomain.com/api/digipin
-- ✅ Share your domain with the world! 🎉
+- ✅ GoDaddy DNS records updated (www, api, @ with A record)
+- ✅ DNS propagated and verified
+- ✅ Frontend loads at https://address2digipin.in
+- ✅ HTTPS enabled with SSL certificate (lock icon 🔒)
+- ✅ Backend responds at https://api.address2digipin.in/health
+- ✅ API works at https://api.address2digipin.in/api/digipin
+- ✅ **🚀 LIVE DEPLOYMENT COMPLETE!**
+
+**Your DigiPin interactive visualization is now live!**
+
+Visit: https://address2digipin.in
 
 ---
 
