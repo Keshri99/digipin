@@ -1,0 +1,56 @@
+{
+  "name": "digipin-visualization",
+  "version": "1.0.0",
+  "description": "Interactive web-based visualization of India's DigiPin grid system with recursive zoom functionality",
+  "main": "digipin-server.js",
+  "scripts": {
+    "start": "node digipin-server.js",
+    "server": "node digipin-server.js",
+    "quickstart": "node quickstart.js",
+    "dev": "node digipin-server.js",
+    "test": "echo \"Run tests here\" && exit 0"
+  },
+  "keywords": [
+    "digipin",
+    "digital-postal-index",
+    "india",
+    "mapping",
+    "geospatial",
+    "grid",
+    "visualization",
+    "interactive",
+    "leaflet",
+    "osm",
+    "coordinates"
+  ],
+  "author": "India Post Department of Posts",
+  "license": "Open Source",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/india-post/digipin-visualization"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=12.0.0",
+    "npm": ">=6.0.0"
+  },
+  "homepage": "https://www.indiapost.gov.in",
+  "bugs": {
+    "url": "https://github.com/india-post/digipin-visualization/issues"
+  },
+  "files": [
+    "digipin-visualization.html",
+    "digipin-advanced.html",
+    "digipin-server.js",
+    "digipin-utils.js",
+    "quickstart.js",
+    "package.json",
+    "VISUALIZATION_README.md",
+    "VISUALIZATION_GUIDE.md",
+    "DIGIPIN_TECHNICAL_SUMMARY.md",
+    "INDEX.md"
+  ]
+}

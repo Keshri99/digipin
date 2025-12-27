@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DigiPin Advanced Visualization - Interactive Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            font-size: 24px;
+        }
+
+        .search-bar {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .search-bar input {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            width: 200px;
+        }
+
+        .search-bar button {
+            padding: 8px 15px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .search-bar button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .container {
+            display: flex;
+            flex: 1;
+            gap: 0;
+        }
+
+        #map {
+            flex: 1;
+            position: relative;
+        }
+
+        .sidebar {
+            width: 350px;
+            background: white;
+            border-left: 1px solid #ddd;
+            overflow-y: auto;
+            padding: 20px;
+            box-shadow: -2px 0 5px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+
+        .controls h3 {
+            font-size: 13px;
+            margin-bottom: 12px;
+            color: #333;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        button {
+            flex: 1;
+            min-width: 80px;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #5568d3;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #5a6268;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 10px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: #666;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .info-box {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            border: 1px solid #dee2e6;
+            font-size: 12px;
+        }
+
+        .info-box h4 {
+            font-size: 11px;
+            color: #667eea;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .info-item {
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+        }
+
+        .label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .value {
+            color: #667eea;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+        }
+
+        .breadcrumb {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            font-size: 11px;
+            word-break: break-all;
+            font-family: 'Courier New', monospace;
+            max-height: 60px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+        }
+
+        .breadcrumb span {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            margin: 12px 0;
+        }
+
+        .grid-cell-btn {
+            padding: 8px;
+            background: #f0f0f0;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            color: #667eea;
+            transition: all 0.2s;
+        }
+
+        .grid-cell-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .grid-cell-btn.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .legend {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+            font-size: 11px;
+        }
+
+        .legend h4 {
+            font-size: 11px;
+            color: #667eea;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            margin-right: 8px;
+        }
+
+        .color-grid {
+            background: rgba(102, 126, 234, 0.1);
+            border: 2px solid #667eea;
+        }
+
+        .color-selected {
+            background: rgba(102, 126, 234, 0.3);
+            border: 2px solid #667eea;
+        }
+
+        .overlay-loader {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .overlay-loader.active {
+            display: flex;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 12px 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .stat-card .value {
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            margin-top: 4px;
+        }
+
+        .stat-card .label {
+            font-size: 10px;
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 4px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .input-group input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .input-group button {
+            padding: 8px 12px;
+        }
+
+        .error {
+            color: #d32f2f;
+            background: #ffebee;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            margin-bottom: 8px;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .success {
+            color: #388e3c;
+            background: #e8f5e9;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            margin-bottom: 8px;
+            display: none;
+        }
+
+        .success.show {
+            display: block;
+        }
+
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 300px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .search-bar {
+                width: 100%;
+            }
+
+            .search-bar input {
+                width: 100%;
+            }
+
+            .sidebar {
+                width: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🗺️ DigiPin Interactive Explorer</h1>
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="Search DigiPin or coordinates...">
+            <button onclick="performSearch()">Search</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <div id="map"></div>
+        <div class="sidebar">
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('info')">📍 Info</button>
+                <button class="tab" onclick="switchTab('cells')">🔲 Cells</button>
+                <button class="tab" onclick="switchTab('tools')">🛠️ Tools</button>
+            </div>
+
+            <div class="controls">
+                <h3>Navigation</h3>
+                <div class="button-group">
+                    <button class="btn-primary" onclick="resetView()">Reset</button>
+                    <button class="btn-secondary" onclick="zoomOut()" id="zoomOutBtn">← Go Up</button>
+                </div>
+            </div>
+
+            <!-- Info Tab -->
+            <div class="tab-content active" id="tab-info">
+                <div class="breadcrumb" id="breadcrumb">
+                    <span>Level 1 (India)</span>
+                </div>
+
+                <div class="info-box">
+                    <h4>📊 Current Level</h4>
+                    <div class="info-item">
+                        <span class="label">Zoom Level:</span>
+                        <span class="value" id="zoomLevel">1</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Grid Size:</span>
+                        <span class="value" id="gridSize">9° × 9°</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Approx. Area:</span>
+                        <span class="value" id="gridArea">1000 km</span>
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <h4>📍 Center Coordinates</h4>
+                    <div class="info-item">
+                        <span class="label">Latitude:</span>
+                        <span class="value" id="centerLat">20.5937°</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Longitude:</span>
+                        <span class="value" id="centerLon">78.9629°</span>
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <h4>🔢 DigiPin Code</h4>
+                    <div class="info-item">
+                        <span class="label">Path:</span>
+                        <span class="value" id="digiPinPath" style="word-break: break-all;">—</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Last Cell:</span>
+                        <span class="value" id="selectedCell">—</span>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="label">Total Divisions</div>
+                        <div class="value" id="totalCells">16</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Sectors</div>
+                        <div class="value" id="sectorCount">4×4</div>
+                    </div>
+                </div>
+
+                <div class="legend">
+                    <h4>🎨 Color Legend</h4>
+                    <div class="legend-item">
+                        <div class="legend-color color-grid"></div>
+                        <span>Normal Grid</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color color-selected"></div>
+                        <span>Selected</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cells Tab -->
+            <div class="tab-content" id="tab-cells">
+                <div class="error" id="cellError"></div>
+                <div class="success" id="cellSuccess"></div>
+                
+                <div class="info-box">
+                    <h4>🔢 Current DigiPin Path</h4>
+                    <div class="info-item">
+                        <span class="label">Building:</span>
+                        <span class="value" id="cellsDigiPinPath" style="word-break: break-all;">—</span>
+                    </div>
+                </div>
+
+                <h4 style="margin-bottom: 10px; color: #667eea;">Available Sectors</h4>
+                <div class="grid-container" id="cellGrid"></div>
+
+                <div class="info-box" style="margin-top: 12px;">
+                    <h4>💡 Instructions</h4>
+                    <p style="font-size: 11px; line-height: 1.5;">
+                        Click on any sector button to zoom into that cell. Watch the DigiPin path build as you navigate deeper into the grid.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Tools Tab -->
+            <div class="tab-content" id="tab-tools">
+                <div class="error" id="toolError"></div>
+                <div class="success" id="toolSuccess"></div>
+
+                <div class="tabs" style="flex-direction: column; border-bottom: none; gap: 8px;">
+                    <button class="tab" style="width: 100%; text-align: left; border: 2px solid #667eea; margin-bottom: 0; border-bottom: 2px solid #667eea;" onclick="switchToolTab('decoder')">🔍 DigiPin Decoder</button>
+                    <button class="tab" style="width: 100%; text-align: left; border: 2px solid #ddd; margin-bottom: 0;" onclick="switchToolTab('encoder')">🎯 Coordinate Encoder</button>
+                </div>
+
+                <!-- Decoder Tab -->
+                <div id="decoder-tab" style="display: block;">
+                    <div class="info-box">
+                        <h4>🔍 DigiPin Decoder</h4>
+                        <div class="input-group">
+                            <input type="text" id="digipinInput" placeholder="e.g., 39J49L-L8T4">
+                            <button class="btn-primary" onclick="decodeDigiPin()">Decode</button>
+                        </div>
+                    </div>
+
+                    <div class="info-box" id="decoderResults" style="display: none;">
+                        <h4>📊 Decoder Results</h4>
+                        <div class="info-item">
+                            <span class="label">DigiPin Code:</span>
+                            <span class="value" id="decoderCode">—</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Center Lat:</span>
+                            <span class="value" id="decoderLat">—</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Center Lon:</span>
+                            <span class="value" id="decoderLon">—</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Bounds (N):</span>
+                            <span class="value" id="decoderBoundN">—</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Bounds (S):</span>
+                            <span class="value" id="decoderBoundS">—</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Bounds (E):</span>
+                            <span class="value" id="decoderBoundE">—</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Bounds (W):</span>
+                            <span class="value" id="decoderBoundW">—</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Encoder Tab -->
+                <div id="encoder-tab" style="display: none;">
+                    <div class="info-box">
+                        <h4>🎯 Coordinate Encoder</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                            <input type="number" id="coordLat" placeholder="Latitude" min="2.5" max="38.5" step="0.001" value="28.622">
+                            <input type="number" id="coordLng" placeholder="Longitude" min="63.5" max="99.5" step="0.001" value="77.213">
+                        </div>
+                        <button class="btn-primary" onclick="encodeCoordinates()" style="width: 100%; margin-top: 8px;">Encode</button>
+                    </div>
+
+                    <div class="info-box" id="encoderResults" style="display: none;">
+                        <h4>📊 Encoder Results</h4>
+                        <div class="info-item">
+                            <span class="label">DigiPin Code:</span>
+                            <span class="value" id="encoderCode" style="word-break: break-all;">—</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Input Lat:</span>
+                            <span class="value" id="encoderLat">—</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Input Lon:</span>
+                            <span class="value" id="encoderLon">—</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Precision Level:</span>
+                            <span class="value" id="encoderLevel">—</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="overlay-loader" id="loader">
+        <div class="spinner"></div>
+    </div>
+
+    <script>
+        // DigiPin Grid Configuration
+        const DIGIPIN_GRID = [
+            ['F', 'C', '9', '8'],
+            ['J', '3', '2', '7'],
+            ['K', '4', '5', '6'],
+            ['L', 'M', 'P', 'T']
+        ];
+
+        const BOUNDS = {
+            minLat: 2.5,
+            maxLat: 38.5,
+            minLon: 63.5,
+            maxLon: 99.5
+        };
+
+        const LEVEL_GRID_SIZES = [
+            '9°', '2.25°', '33.75′', '8.44′', '2.11′', 
+            '0.53′', '0.13′', '0.03′', '0.5″', '0.12″'
+        ];
+
+        const LEVEL_AREAS = [
+            '1000 km', '250 km', '62.5 km', '15.6 km', '3.9 km',
+            '1 km', '250 m', '60 m', '15 m', '3.8 m'
+        ];
+
+        // Application State
+        let appState = {
+            currentLevel: 1,
+            zoomPath: [],
+            selectedCell: null,
+            currentBounds: { ...BOUNDS },
+            map: null,
+            gridLayers: [],
+            searchMarker: null,
+            searchBounds: null
+        };
+
+        // Initialize Map
+        function initMap() {
+            appState.map = L.map('map').setView([20.5937, 78.9629], 4);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(appState.map);
+
+            // Add country boundary
+            fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson')
+                .then(response => response.json())
+                .then(data => {
+                    const india = data.features.find(f => f.properties.ADMIN === 'India');
+                    if (india) {
+                        L.geoJSON(india, {
+                            style: {
+                                color: '#ff7800',
+                                weight: 2,
+                                opacity: 0.7,
+                                fill: false
+                            }
+                        }).addTo(appState.map);
+                    }
+                })
+                .catch(err => console.log('Could not load boundaries'));
+
+            appState.map.on('click', onMapClick);
+            renderGridCells();
+            updateCellButtons();
+        }
+
+        // Get cell bounds
+        // Uses reversed row logic: row 0 is at maxLat, row 3 is at minLat
+        function getCellBounds(row, col, bounds = null) {
+            const b = bounds || appState.currentBounds;
+            const latDiv = (b.maxLat - b.minLat) / 4;
+            const lonDiv = (b.maxLon - b.minLon) / 4;
+
+            return {
+                minLat: b.maxLat - latDiv * (row + 1),
+                maxLat: b.maxLat - latDiv * row,
+                minLon: b.minLon + lonDiv * col,
+                maxLon: b.minLon + lonDiv * (col + 1)
+            };
+        }
+
+        // Get cell center
+        function getCellCenter(bounds) {
+            return {
+                lat: (bounds.minLat + bounds.maxLat) / 2,
+                lng: (bounds.minLon + bounds.maxLon) / 2
+            };
+        }
+
+        // Render grid cells
+        function renderGridCells() {
+            appState.gridLayers.forEach(layer => appState.map.removeLayer(layer));
+            appState.gridLayers = [];
+
+            const b = appState.currentBounds;
+
+            for (let row = 0; row < 4; row++) {
+                for (let col = 0; col < 4; col++) {
+                    const cellBounds = getCellBounds(row, col);
+                    const char = DIGIPIN_GRID[row][col];
+                    const isSelected = appState.selectedCell === char;
+
+                    const rect = L.rectangle([
+                        [cellBounds.minLat, cellBounds.minLon],
+                        [cellBounds.maxLat, cellBounds.maxLon]
+                    ], {
+                        color: isSelected ? '#667eea' : '#667eea',
+                        weight: isSelected ? 3 : 1,
+                        opacity: 0.7,
+                        fillColor: '#667eea',
+                        fillOpacity: isSelected ? 0.3 : 0.1
+                    }).addTo(appState.map);
+
+                    const center = getCellCenter(cellBounds);
+                    const label = L.marker(center, {
+                        icon: L.divIcon({
+                            className: 'grid-label',
+                            html: `<div style="font-size: 20px; font-weight: bold; color: #667eea; text-shadow: 2px 2px 4px rgba(255,255,255,0.8); pointer-events: none;">${char}</div>`,
+                            iconSize: [30, 30]
+                        })
+                    }).addTo(appState.map);
+
+                    rect.on('click', () => zoomIntoCell(char, cellBounds, row, col));
+                    rect.on('mouseover', function() {
+                        if (!isSelected) this.setStyle({ weight: 2, fillOpacity: 0.2 });
+                    });
+                    rect.on('mouseout', function() {
+                        if (!isSelected) this.setStyle({ weight: 1, fillOpacity: 0.1 });
+                    });
+
+                    appState.gridLayers.push(rect);
+                    appState.gridLayers.push(label);
+                }
+            }
+        }
+
+        // Zoom into cell
+        function zoomIntoCell(char, bounds, row, col) {
+            if (appState.currentLevel >= 10) {
+                alert('Maximum zoom level reached!');
+                return;
+            }
+
+            appState.zoomPath.push(char);
+            appState.currentBounds = bounds;
+            appState.selectedCell = char;
+            appState.currentLevel++;
+
+            updateUI();
+            renderGridCells();
+            updateCellButtons();
+
+            const latLng = [
+                [bounds.minLat, bounds.minLon],
+                [bounds.maxLat, bounds.maxLon]
+            ];
+            appState.map.fitBounds(latLng, { padding: [50, 50], animate: true });
+        }
+
+        // Zoom out
+        function zoomOut() {
+            if (appState.currentLevel <= 1) return;
+
+            appState.zoomPath.pop();
+            appState.currentLevel--;
+            appState.selectedCell = null;
+
+            recalculateBounds();
+            updateUI();
+            renderGridCells();
+            updateCellButtons();
+
+            const bounds = appState.currentBounds;
+            const latLng = [
+                [bounds.minLat, bounds.minLon],
+                [bounds.maxLat, bounds.maxLon]
+            ];
+            appState.map.fitBounds(latLng, { padding: [50, 50], animate: true });
+        }
+
+        // Recalculate bounds
+        function recalculateBounds() {
+            appState.currentBounds = { ...BOUNDS };
+
+            appState.zoomPath.forEach(char => {
+                let row = -1, col = -1;
+                for (let r = 0; r < 4; r++) {
+                    for (let c = 0; c < 4; c++) {
+                        if (DIGIPIN_GRID[r][c] === char) {
+                            row = r;
+                            col = c;
+                            break;
+                        }
+                    }
+                    if (row !== -1) break;
+                }
+
+                if (row !== -1) {
+                    const bounds = getCellBounds(row, col, appState.currentBounds);
+                    appState.currentBounds = bounds;
+                }
+            });
+        }
+
+        // Update cell buttons
+        function updateCellButtons() {
+            const grid = document.getElementById('cellGrid');
+            grid.innerHTML = '';
+
+            for (let row = 0; row < 4; row++) {
+                for (let col = 0; col < 4; col++) {
+                    const char = DIGIPIN_GRID[row][col];
+                    const btn = document.createElement('button');
+                    btn.className = 'grid-cell-btn';
+                    if (appState.selectedCell === char) btn.classList.add('selected');
+                    btn.textContent = char;
+                    btn.onclick = () => {
+                        const cellBounds = getCellBounds(row, col);
+                        zoomIntoCell(char, cellBounds, row, col);
+                    };
+                    grid.appendChild(btn);
+                }
+            }
+        }
+
+        // Reset view
+        function resetView() {
+            appState.currentLevel = 1;
+            appState.zoomPath = [];
+            appState.selectedCell = null;
+            appState.currentBounds = { ...BOUNDS };
+
+            updateUI();
+            renderGridCells();
+            updateCellButtons();
+            appState.map.fitBounds([
+                [BOUNDS.minLat, BOUNDS.minLon],
+                [BOUNDS.maxLat, BOUNDS.maxLon]
+            ], { padding: [50, 50], animate: true });
+        }
+
+        // Update UI
+        function updateUI() {
+            document.getElementById('zoomLevel').textContent = appState.currentLevel;
+            document.getElementById('gridSize').textContent = LEVEL_GRID_SIZES[appState.currentLevel - 1] + ' × ' + LEVEL_GRID_SIZES[appState.currentLevel - 1];
+            document.getElementById('gridArea').textContent = LEVEL_AREAS[appState.currentLevel - 1];
+            document.getElementById('selectedCell').textContent = appState.selectedCell || '—';
+            document.getElementById('digiPinPath').textContent = appState.zoomPath.join('-') || '—';
+            document.getElementById('cellsDigiPinPath').textContent = appState.zoomPath.join('-') || '—';
+            document.getElementById('totalCells').textContent = '16';
+            document.getElementById('sectorCount').textContent = '4×4';
+
+            const breadcrumbText = appState.currentLevel === 1 
+                ? 'Level 1 (India)' 
+                : `Level ${appState.currentLevel}: ${appState.zoomPath.join('-')}`;
+            document.getElementById('breadcrumb').textContent = breadcrumbText;
+
+            document.getElementById('zoomOutBtn').disabled = appState.currentLevel <= 1;
+
+            const center = getCellCenter(appState.currentBounds);
+            document.getElementById('centerLat').textContent = center.lat.toFixed(4) + '°';
+            document.getElementById('centerLon').textContent = center.lng.toFixed(4) + '°';
+        }
+
+        // Switch tabs
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('tab-' + tabName).classList.add('active');
+        }
+
+        // Switch tool tabs
+        function switchToolTab(tabName) {
+            document.querySelectorAll('#tab-tools .tabs button').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('#tab-tools > div[id$="-tab"]').forEach(t => t.style.display = 'none');
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName + '-tab').style.display = 'block';
+        }
+
+        // Map click handler
+        function onMapClick(e) {
+            const lat = e.latlng.lat;
+            const lng = e.latlng.lng;
+            document.getElementById('centerLat').textContent = lat.toFixed(4) + '°';
+            document.getElementById('centerLon').textContent = lng.toFixed(4) + '°';
+        }
+
+        // Clear search markers and bounds
+        function clearSearchDisplay() {
+            if (appState.searchMarker) {
+                appState.map.removeLayer(appState.searchMarker);
+                appState.searchMarker = null;
+            }
+            if (appState.searchBounds) {
+                appState.map.removeLayer(appState.searchBounds);
+                appState.searchBounds = null;
+            }
+        }
+
+        // Show search results on map
+        function showSearchResultsOnMap(bounds) {
+            clearSearchDisplay();
+            
+            const center = getCellCenter(bounds);
+            
+            // Add marker at center
+            appState.searchMarker = L.marker([center.lat, center.lng], {
+                icon: L.icon({
+                    iconUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iIzY2N2VlYSIgZD0iTTEyIDJDNi40OCAyIDIgNi40OCAyIDEyYzAgNyAxMCAxMCAxMCAxMHMxMC0zIDEwLTEwYzAtNS41Mi00LjQ4LTEwLTEwLTEwem0wIDEwYzEuMSAwIDIgMC45IDIgMnMtMC45IDItMiAyLTItMC45LTIgMiAwLjktMiAyLTJ6Ii8+PC9zdmc+',
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 32],
+                    popupAnchor: [0, -32]
+                })
+            }).addTo(appState.map)
+                .bindPopup(`<b>Location Center</b><br/>Lat: ${center.lat.toFixed(6)}°<br/>Lon: ${center.lng.toFixed(6)}°`);
+            
+            // Add bounding box
+            appState.searchBounds = L.rectangle([
+                [bounds.minLat, bounds.minLon],
+                [bounds.maxLat, bounds.maxLon]
+            ], {
+                color: '#667eea',
+                weight: 2,
+                opacity: 0.8,
+                fillColor: '#667eea',
+                fillOpacity: 0.1,
+                dashArray: '5, 5'
+            }).addTo(appState.map)
+                .bindPopup(`<b>Search Bounds</b><br/>North: ${bounds.maxLat.toFixed(6)}°<br/>South: ${bounds.minLat.toFixed(6)}°<br/>East: ${bounds.maxLon.toFixed(6)}°<br/>West: ${bounds.minLon.toFixed(6)}°`);
+            
+            // Fit map to bounds
+            appState.map.fitBounds([
+                [bounds.minLat, bounds.minLon],
+                [bounds.maxLat, bounds.maxLon]
+            ], { padding: [50, 50], animate: true });
+        }
+
+        // Tools
+        function decodeDigiPin() {
+            const input = document.getElementById('digipinInput').value;
+            const errorEl = document.getElementById('toolError');
+            const successEl = document.getElementById('toolSuccess');
+            const resultsEl = document.getElementById('decoderResults');
+
+            errorEl.classList.remove('show');
+            successEl.classList.remove('show');
+            resultsEl.style.display = 'none';
+
+            if (!input) {
+                errorEl.textContent = 'Please enter a DigiPin code';
+                errorEl.classList.add('show');
+                return;
+            }
+
+            try {
+                const pin = input.replace(/-/g, '').toUpperCase();
+                
+                // Validate DigiPin
+                if (pin.length < 1 || pin.length > 10) {
+                    throw new Error('DigiPin must be 1-10 characters');
+                }
+
+                // Validate all characters are valid
+                const validChars = ['F', 'C', '9', '8', 'J', '3', '2', '7', 'K', '4', '5', '6', 'L', 'M', 'P', 'T'];
+                for (let char of pin) {
+                    if (!validChars.includes(char)) {
+                        throw new Error(`Invalid character '${char}' in DigiPin`);
+                    }
+                }
+
+                // Decode step by step
+                let bounds = { ...BOUNDS };
+                for (let i = 0; i < pin.length; i++) {
+                    const char = pin[i];
+                    let row = -1, col = -1;
+                    
+                    for (let r = 0; r < 4; r++) {
+                        for (let c = 0; c < 4; c++) {
+                            if (DIGIPIN_GRID[r][c] === char) {
+                                row = r;
+                                col = c;
+                                break;
+                            }
+                        }
+                        if (row !== -1) break;
+                    }
+
+                    if (row === -1) throw new Error(`Character '${char}' not found in grid`);
+                    
+                    bounds = getCellBounds(row, col, bounds);
+                }
+
+                const center = getCellCenter(bounds);
+
+                // Display results
+                document.getElementById('decoderCode').textContent = input;
+                document.getElementById('decoderLat').textContent = center.lat.toFixed(6) + '°';
+                document.getElementById('decoderLon').textContent = center.lng.toFixed(6) + '°';
+                document.getElementById('decoderBoundN').textContent = bounds.maxLat.toFixed(6) + '°';
+                document.getElementById('decoderBoundS').textContent = bounds.minLat.toFixed(6) + '°';
+                document.getElementById('decoderBoundE').textContent = bounds.maxLon.toFixed(6) + '°';
+                document.getElementById('decoderBoundW').textContent = bounds.minLon.toFixed(6) + '°';
+
+                resultsEl.style.display = 'block';
+                successEl.textContent = 'DigiPin decoded successfully!';
+                successEl.classList.add('show');
+
+                // Navigate to location and show markers
+                showSearchResultsOnMap(bounds);
+            } catch (e) {
+                errorEl.textContent = 'Error: ' + e.message;
+                errorEl.classList.add('show');
+            }
+        }
+
+        function encodeCoordinates() {
+            const lat = parseFloat(document.getElementById('coordLat').value);
+            const lng = parseFloat(document.getElementById('coordLng').value);
+            const errorEl = document.getElementById('toolError');
+            const successEl = document.getElementById('toolSuccess');
+            const resultsEl = document.getElementById('encoderResults');
+
+            errorEl.classList.remove('show');
+            successEl.classList.remove('show');
+            resultsEl.style.display = 'none';
+
+            if (!lat || !lng) {
+                errorEl.textContent = 'Please enter both latitude and longitude';
+                errorEl.classList.add('show');
+                return;
+            }
+
+            if (lat < BOUNDS.minLat || lat > BOUNDS.maxLat || lng < BOUNDS.minLon || lng > BOUNDS.maxLon) {
+                errorEl.textContent = `Coordinates outside India bounds (${BOUNDS.minLat}° to ${BOUNDS.maxLat}°N, ${BOUNDS.minLon}° to ${BOUNDS.maxLon}°E)`;
+                errorEl.classList.add('show');
+                return;
+            }
+
+            try {
+                // Encode to 10-level DigiPin
+                let bounds = { ...BOUNDS };
+                let digiPin = '';
+
+                for (let level = 0; level < 10; level++) {
+                    const latDiv = (bounds.maxLat - bounds.minLat) / 4;
+                    const lonDiv = (bounds.maxLon - bounds.minLon) / 4;
+
+                    // Find which row and column
+                    let row = Math.floor((bounds.maxLat - lat) / latDiv);
+                    let col = Math.floor((lng - bounds.minLon) / lonDiv);
+
+                    // Clamp to valid range
+                    row = Math.max(0, Math.min(3, row));
+                    col = Math.max(0, Math.min(3, col));
+
+                    const char = DIGIPIN_GRID[row][col];
+                    digiPin += char;
+
+                    // Recurse into cell
+                    bounds = getCellBounds(row, col, bounds);
+                }
+
+                // Format with hyphens
+                const formattedPin = digiPin.substring(0, 5) + '-' + digiPin.substring(5);
+
+                document.getElementById('encoderCode').textContent = formattedPin;
+                document.getElementById('encoderLat').textContent = lat.toFixed(6) + '°';
+                document.getElementById('encoderLon').textContent = lng.toFixed(6) + '°';
+                document.getElementById('encoderLevel').textContent = 'Level 10 (Full precision)';
+
+                resultsEl.style.display = 'block';
+                successEl.textContent = 'Coordinates encoded to DigiPin successfully!';
+                successEl.classList.add('show');
+
+                // Show bounds on map
+                const testBounds = { ...BOUNDS };
+                let tempBounds = { ...BOUNDS };
+                for (let level = 0; level < 10; level++) {
+                    const latDiv = (tempBounds.maxLat - tempBounds.minLat) / 4;
+                    const lonDiv = (tempBounds.maxLon - tempBounds.minLon) / 4;
+                    let row = Math.floor((tempBounds.maxLat - lat) / latDiv);
+                    let col = Math.floor((lng - tempBounds.minLon) / lonDiv);
+                    row = Math.max(0, Math.min(3, row));
+                    col = Math.max(0, Math.min(3, col));
+                    tempBounds = getCellBounds(row, col, tempBounds);
+                }
+                showSearchResultsOnMap(tempBounds);
+
+            } catch (e) {
+                errorEl.textContent = 'Error: ' + e.message;
+                errorEl.classList.add('show');
+            }
+        }
+
+        function performSearch() {
+            const input = document.getElementById('searchInput').value.trim();
+            if (!input) return;
+
+            const errorEl = document.getElementById('toolError');
+            errorEl.classList.remove('show');
+
+            // Try as coordinates first
+            const coordParts = input.split(',');
+            if (coordParts.length === 2) {
+                const lat = parseFloat(coordParts[0].trim());
+                const lng = parseFloat(coordParts[1].trim());
+                if (!isNaN(lat) && !isNaN(lng)) {
+                    if (lat >= BOUNDS.minLat && lat <= BOUNDS.maxLat && lng >= BOUNDS.minLon && lng <= BOUNDS.maxLon) {
+                        // Encode to get the full grid bounds
+                        let tempBounds = { ...BOUNDS };
+                        for (let level = 0; level < 10; level++) {
+                            const latDiv = (tempBounds.maxLat - tempBounds.minLat) / 4;
+                            const lonDiv = (tempBounds.maxLon - tempBounds.minLon) / 4;
+                            let row = Math.floor((tempBounds.maxLat - lat) / latDiv);
+                            let col = Math.floor((lng - tempBounds.minLon) / lonDiv);
+                            row = Math.max(0, Math.min(3, row));
+                            col = Math.max(0, Math.min(3, col));
+                            tempBounds = getCellBounds(row, col, tempBounds);
+                        }
+                        showSearchResultsOnMap(tempBounds);
+                        return;
+                    }
+                }
+            }
+
+            // Try as DigiPin
+            const pin = input.replace(/-/g, '').toUpperCase();
+            const validChars = ['F', 'C', '9', '8', 'J', '3', '2', '7', 'K', '4', '5', '6', 'L', 'M', 'P', 'T'];
+            
+            if (pin.length >= 1 && pin.length <= 10) {
+                let isValidPin = true;
+                for (let char of pin) {
+                    if (!validChars.includes(char)) {
+                        isValidPin = false;
+                        break;
+                    }
+                }
+
+                if (isValidPin) {
+                    // Decode and navigate
+                    let bounds = { ...BOUNDS };
+                    for (let i = 0; i < pin.length; i++) {
+                        const char = pin[i];
+                        let row = -1, col = -1;
+                        
+                        for (let r = 0; r < 4; r++) {
+                            for (let c = 0; c < 4; c++) {
+                                if (DIGIPIN_GRID[r][c] === char) {
+                                    row = r;
+                                    col = c;
+                                    break;
+                                }
+                            }
+                            if (row !== -1) break;
+                        }
+
+                        if (row !== -1) {
+                            bounds = getCellBounds(row, col, bounds);
+                        }
+                    }
+
+                    showSearchResultsOnMap(bounds);
+                    return;
+                }
+            }
+
+            errorEl.textContent = 'Invalid input. Please enter coordinates as "lat,lng" or a valid DigiPin code (1-10 characters)';
+            errorEl.classList.add('show');
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            initMap();
+            updateUI();
+        });
+    </script>
+</body>
+</html>
