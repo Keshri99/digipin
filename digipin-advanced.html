@@ -567,6 +567,7 @@
                 <div class="tabs" style="flex-direction: column; border-bottom: none; gap: 8px;">
                     <button class="tab" style="width: 100%; text-align: left; border: 2px solid #667eea; margin-bottom: 0; border-bottom: 2px solid #667eea;" onclick="switchToolTab('decoder')">🔍 DigiPin Decoder</button>
                     <button class="tab" style="width: 100%; text-align: left; border: 2px solid #ddd; margin-bottom: 0;" onclick="switchToolTab('encoder')">🎯 Coordinate Encoder</button>
+                    <button class="tab" style="width: 100%; text-align: left; border: 2px solid #ddd; margin-bottom: 0;" onclick="switchToolTab('address')">🏠 Address Lookup</button>
                 </div>
 
                 <!-- Decoder Tab -->
@@ -643,6 +644,40 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Address Search Tab -->
+                <div id="address-tab" style="display: none;">
+                    <div class="error" id="addressError"></div>
+                    <div class="success" id="addressSuccess"></div>
+
+                    <div class="info-box">
+                        <h4>🏠 Address Lookup</h4>
+                        <div class="input-group">
+                            <input type="text" id="addressSearchInput" placeholder="e.g., Mumbai, India" autocomplete="off">
+                            <button class="btn-primary" onclick="handleAddressLookup()">Search</button>
+                        </div>
+                    </div>
+
+                    <div class="info-box" id="addressResults" style="display: none;">
+                        <h4>📊 Address Results</h4>
+                        <div class="info-item">
+                            <span class="label">Found Address:</span>
+                            <span class="value" id="resultAddress" style="word-break: break-word; font-size: 12px;">—</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Latitude:</span>
+                            <span class="value" id="resultLat">—</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Longitude:</span>
+                            <span class="value" id="resultLon">—</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">DigiPin:</span>
+                            <span class="value" id="resultDigiPin" style="word-break: break-all; font-size: 14px; font-weight: bold;">—</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -652,6 +687,9 @@
     </div>
 
     <script>
+        // ========== GOOGLE GEOCODING API SETUP ==========
+        const GOOGLE_API_KEY = 'YOUR_GOOGLE_API_KEY_HERE'; // Replace with your API key
+
         // DigiPin Grid Configuration
         const DIGIPIN_GRID = [
             ['F', 'C', '9', '8'],
@@ -992,6 +1030,110 @@
                 [bounds.minLat, bounds.minLon],
                 [bounds.maxLat, bounds.maxLon]
             ], { padding: [50, 50], animate: true });
+        }
+
+        // ========== ADDRESS LOOKUP FUNCTIONS ==========
+        // Geocode address to coordinates
+        async function geocodeAddress(address) {
+            if (!GOOGLE_API_KEY || GOOGLE_API_KEY === 'YOUR_GOOGLE_API_KEY_HERE') {
+                throw new Error('Google API key not configured. Please add your API key to the script.');
+            }
+
+            try {
+                const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&components=country:IN&key=${GOOGLE_API_KEY}`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.status === 'OK' && data.results.length > 0) {
+                    const result = data.results[0];
+                    return {
+                        lat: result.geometry.location.lat,
+                        lng: result.geometry.location.lng,
+                        address: result.formatted_address
+                    };
+                } else if (data.status === 'ZERO_RESULTS') {
+                    throw new Error('Address not found. Please try a different address.');
+                } else {
+                    throw new Error(`Geocoding error: ${data.status}`);
+                }
+            } catch (error) {
+                throw error;
+            }
+        }
+
+        // Handle address lookup
+        async function handleAddressLookup() {
+            const addressInput = document.getElementById('addressSearchInput');
+            const address = addressInput.value.trim();
+            const errorEl = document.getElementById('addressError');
+            const successEl = document.getElementById('addressSuccess');
+            const resultsEl = document.getElementById('addressResults');
+
+            errorEl.classList.remove('show');
+            successEl.classList.remove('show');
+            resultsEl.style.display = 'none';
+
+            if (!address) {
+                errorEl.textContent = '⚠️ Please enter an address';
+                errorEl.classList.add('show');
+                return;
+            }
+
+            try {
+                errorEl.textContent = '⏳ Searching...';
+                errorEl.classList.add('show');
+
+                // Geocode the address
+                const location = await geocodeAddress(address);
+                errorEl.classList.remove('show');
+
+                // Check if coordinates are within India bounds
+                if (location.lat < BOUNDS.minLat || location.lat > BOUNDS.maxLat || 
+                    location.lng < BOUNDS.minLon || location.lng > BOUNDS.maxLon) {
+                    throw new Error('Address is outside India bounds');
+                }
+
+                // Convert to DigiPin
+                let bounds = { ...BOUNDS };
+                let digiPin = '';
+
+                for (let level = 0; level < 10; level++) {
+                    const latDiv = (bounds.maxLat - bounds.minLat) / 4;
+                    const lonDiv = (bounds.maxLon - bounds.minLon) / 4;
+
+                    let row = Math.floor((bounds.maxLat - location.lat) / latDiv);
+                    let col = Math.floor((location.lng - bounds.minLon) / lonDiv);
+
+                    row = Math.max(0, Math.min(3, row));
+                    col = Math.max(0, Math.min(3, col));
+
+                    const char = DIGIPIN_GRID[row][col];
+                    digiPin += char;
+
+                    bounds = getCellBounds(row, col, bounds);
+                }
+
+                // Format DigiPin with hyphen
+                const formattedPin = digiPin.substring(0, 5) + '-' + digiPin.substring(5);
+
+                // Display results
+                document.getElementById('resultAddress').textContent = location.address;
+                document.getElementById('resultLat').textContent = location.lat.toFixed(6) + '°';
+                document.getElementById('resultLon').textContent = location.lng.toFixed(6) + '°';
+                document.getElementById('resultDigiPin').textContent = formattedPin;
+
+                resultsEl.style.display = 'block';
+                successEl.textContent = '✓ Address found and DigiPin generated!';
+                successEl.classList.add('show');
+
+                // Show on map
+                showSearchResultsOnMap(bounds);
+
+            } catch (error) {
+                errorEl.textContent = '❌ ' + error.message;
+                errorEl.classList.add('show');
+            }
         }
 
         // Tools
